@@ -2,15 +2,33 @@ package reflect
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"testing"
+	"unsafe"
 )
 
-type ReflectTest struct {
-	A int
-	B string
+type TestStruct struct {
+	A int    `json:"a"`
+	B string `json:"b"`
+	c string `json:"c"`
 }
 
+// 通过反射修改非导出字段
+func TestChangeNotExportFiled(t *testing.T) {
+	var r TestStruct
+	// 获取字段对象
+	v := reflect.ValueOf(&r).Elem().FieldByName("c")
+	// 构建指向该字段的可寻址（addressable）反射对象
+	rv := reflect.NewAt(v.Type(), unsafe.Pointer(v.UnsafeAddr())).Elem()
+	// 设置值
+	fv := reflect.ValueOf("pibigstar")
+	rv.Set(fv)
+
+	t.Logf("%+v", r)
+}
+
+// 根据反射判断字段类型
 func TestInterface(t *testing.T) {
 	var value interface{}
 	value = "pibigstar"
@@ -31,6 +49,7 @@ func TestInterface(t *testing.T) {
 	}
 }
 
+// 反射基本操作
 func TestReflect(t *testing.T) {
 
 	var str = "hello world"
@@ -57,7 +76,7 @@ func TestReflect(t *testing.T) {
 	t.Log("value:", v)
 
 	// 通过反射修改结构体
-	test := ReflectTest{23, "hello world"}
+	test := TestStruct{A: 23, B: "hello world"}
 	s := reflect.ValueOf(&test).Elem()
 	typeOfT := s.Type()
 	for i := 0; i < s.NumField(); i++ {
@@ -67,4 +86,14 @@ func TestReflect(t *testing.T) {
 	s.Field(0).SetInt(77)
 	s.Field(1).SetString("new world")
 	t.Logf("%+v", test)
+}
+
+// 获取tag
+func TestGetTag(t *testing.T) {
+	s := TestStruct{}
+	rt := reflect.TypeOf(s)
+	for i := 0; i < rt.NumField(); i++ {
+		f := rt.Field(i)
+		fmt.Println(f.Tag.Get("json"))
+	}
 }
